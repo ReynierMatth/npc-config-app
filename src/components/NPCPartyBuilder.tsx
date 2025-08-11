@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Shuffle, Zap, Search } from 'lucide-react';
 import type { NPCConfiguration, NPCPartyProvider, SimplePartyProvider, PoolPartyProvider, PoolEntry } from '../types/npc';
+import { pokemonApi } from '../services/pokemonApi';
+import { PokemonFormSelector } from './PokemonFormSelector';
 
 interface NPCPartyBuilderProps {
   config: NPCConfiguration;
@@ -9,6 +11,9 @@ interface NPCPartyBuilderProps {
 
 export function NPCPartyBuilder({ config, onChange }: NPCPartyBuilderProps) {
   const [partyType, setPartyType] = useState<'simple' | 'pool' | 'script'>(config.party?.type || 'simple');
+  const [showPokemonFormSelector, setShowPokemonFormSelector] = useState(false);
+  const [selectedPokemonIndex, setSelectedPokemonIndex] = useState<number>(-1);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handlePartyChange = (party: NPCPartyProvider) => {
     onChange({ ...config, party });
@@ -28,6 +33,66 @@ export function NPCPartyBuilder({ config, onChange }: NPCPartyBuilderProps) {
         handlePartyChange({ type: 'script', script: '' });
         break;
     }
+  };
+
+  const generateRandomTeam = async (teamSize: number = 6) => {
+    setIsGenerating(true);
+    try {
+      const team = await pokemonApi.generateRandomTeam(teamSize);
+      const pokemonStrings = team.map(pokemon => pokemonApi.formatToCobblemonString(pokemon));
+      
+      if (partyType === 'simple') {
+        handlePartyChange({
+          type: 'simple',
+          pokemon: pokemonStrings,
+          isStatic: (config.party as SimplePartyProvider)?.isStatic
+        });
+      }
+    } catch (error) {
+      console.error('Failed to generate random team:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const generateTeamByType = async (type: string, teamSize: number = 6) => {
+    setIsGenerating(true);
+    try {
+      const team = await pokemonApi.generateTeamByType(type, teamSize);
+      const pokemonStrings = team.map(pokemon => pokemonApi.formatToCobblemonString(pokemon));
+      
+      if (partyType === 'simple') {
+        handlePartyChange({
+          type: 'simple',
+          pokemon: pokemonStrings,
+          isStatic: (config.party as SimplePartyProvider)?.isStatic
+        });
+      }
+    } catch (error) {
+      console.error(`Failed to generate ${type} team:`, error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const openPokemonFormSelector = (index: number) => {
+    setSelectedPokemonIndex(index);
+    setShowPokemonFormSelector(true);
+  };
+
+  const handlePokemonFormSelect = (pokemonString: string) => {
+    if (partyType === 'simple') {
+      const party = config.party as SimplePartyProvider;
+      const newPokemon = [...party.pokemon];
+      newPokemon[selectedPokemonIndex] = pokemonString;
+      
+      handlePartyChange({
+        ...party,
+        pokemon: newPokemon
+      });
+    }
+    setShowPokemonFormSelector(false);
+    setSelectedPokemonIndex(-1);
   };
 
   const renderSimpleParty = () => {
@@ -61,17 +126,85 @@ export function NPCPartyBuilder({ config, onChange }: NPCPartyBuilderProps) {
     };
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h4 className="font-medium">Pokemon List</h4>
-          <button
-            type="button"
-            onClick={addPokemon}
-            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
-          >
-            <Plus className="h-3 w-3 mr-1" />
-            Add Pokemon
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={addPokemon}
+              className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add Empty Slot
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                addPokemon();
+                const newIndex = (config.party as SimplePartyProvider)?.pokemon?.length || 0;
+                openPokemonFormSelector(newIndex);
+              }}
+              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Search className="h-3 w-3 mr-1" />
+              Add Pokémon
+            </button>
+          </div>
+        </div>
+
+        {/* Team Generation Tools */}
+        <div className="bg-gray-50 p-3 rounded-lg space-y-3">
+          <h5 className="text-sm font-medium text-gray-700">Team Generation</h5>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => generateRandomTeam(6)}
+              disabled={isGenerating}
+              className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+            >
+              <Shuffle className="h-3 w-3 mr-1" />
+              {isGenerating ? 'Generating...' : 'Random Team'}
+            </button>
+            
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  generateTeamByType(e.target.value, 6);
+                  e.target.value = '';
+                }
+              }}
+              disabled={isGenerating}
+              className="text-xs border border-gray-300 rounded px-2 py-1 disabled:opacity-50"
+            >
+              <option value="">Generate by Type</option>
+              <option value="fire">Fire Team</option>
+              <option value="water">Water Team</option>
+              <option value="grass">Grass Team</option>
+              <option value="electric">Electric Team</option>
+              <option value="psychic">Psychic Team</option>
+              <option value="fighting">Fighting Team</option>
+              <option value="poison">Poison Team</option>
+              <option value="ground">Ground Team</option>
+              <option value="rock">Rock Team</option>
+              <option value="bug">Bug Team</option>
+              <option value="ghost">Ghost Team</option>
+              <option value="steel">Steel Team</option>
+              <option value="dragon">Dragon Team</option>
+              <option value="dark">Dark Team</option>
+              <option value="fairy">Fairy Team</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={() => generateRandomTeam(3)}
+              disabled={isGenerating}
+              className="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-purple-700 bg-purple-100 hover:bg-purple-200 disabled:opacity-50"
+            >
+              <Zap className="h-3 w-3 mr-1" />
+              Quick 3
+            </button>
+          </div>
         </div>
 
         {party.pokemon.map((pokemon, index) => (
@@ -83,6 +216,14 @@ export function NPCPartyBuilder({ config, onChange }: NPCPartyBuilderProps) {
               className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
               placeholder="pikachu level=50 moves=thunderbolt,quick-attack"
             />
+            <button
+              type="button"
+              onClick={() => openPokemonFormSelector(index)}
+              className="p-1 text-indigo-600 hover:text-indigo-800"
+              title="Add Pokémon"
+            >
+              <Search className="h-4 w-4" />
+            </button>
             <button
               type="button"
               onClick={() => removePokemon(index)}
@@ -297,30 +438,38 @@ export function NPCPartyBuilder({ config, onChange }: NPCPartyBuilderProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">Pokemon Party</h2>
+    <>
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold text-gray-900">Pokemon Party</h2>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Party Type</label>
-        <div className="flex space-x-4">
-          {(['simple', 'pool', 'script'] as const).map((type) => (
-            <label key={type} className="inline-flex items-center">
-              <input
-                type="radio"
-                value={type}
-                checked={partyType === type}
-                onChange={(e) => handlePartyTypeChange(e.target.value as 'simple' | 'pool' | 'script')}
-                className="form-radio"
-              />
-              <span className="ml-2 capitalize">{type}</span>
-            </label>
-          ))}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Party Type</label>
+          <div className="flex space-x-4">
+            {(['simple', 'pool', 'script'] as const).map((type) => (
+              <label key={type} className="inline-flex items-center">
+                <input
+                  type="radio"
+                  value={type}
+                  checked={partyType === type}
+                  onChange={(e) => handlePartyTypeChange(e.target.value as 'simple' | 'pool' | 'script')}
+                  className="form-radio"
+                />
+                <span className="ml-2 capitalize">{type}</span>
+              </label>
+            ))}
+          </div>
         </div>
+
+        {partyType === 'simple' && renderSimpleParty()}
+        {partyType === 'pool' && renderPoolParty()}
+        {partyType === 'script' && renderScriptParty()}
       </div>
 
-      {partyType === 'simple' && renderSimpleParty()}
-      {partyType === 'pool' && renderPoolParty()}
-      {partyType === 'script' && renderScriptParty()}
-    </div>
+      <PokemonFormSelector
+        isOpen={showPokemonFormSelector}
+        onSelect={handlePokemonFormSelect}
+        onClose={() => setShowPokemonFormSelector(false)}
+      />
+    </>
   );
 }

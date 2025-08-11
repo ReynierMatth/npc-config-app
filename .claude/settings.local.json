@@ -6,7 +6,8 @@
       "Bash(npm install:*)",
       "Bash(npm uninstall:*)",
       "Bash(rm:*)",
-      "Bash(npx tailwindcss init:*)"
+      "Bash(npx tailwindcss init:*)",
+      "WebFetch(domain:pokeapi.co)"
     ],
     "deny": []
   }
