@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Trash2, MessageCircle } from 'lucide-react';
 import type { DialogueConfiguration, DialoguePage, DialogueSpeaker } from '../types/npc';
 
@@ -7,7 +7,7 @@ interface DialogueEditorProps {
   onChange: (dialogue: DialogueConfiguration) => void;
 }
 
-export const DialogueEditor: React.FC<DialogueEditorProps> = ({ dialogue, onChange }) => {
+export function DialogueEditor({ dialogue, onChange }: DialogueEditorProps) {
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [speakerEditMode, setSpeakerEditMode] = useState(false);
 
@@ -268,9 +268,12 @@ export const DialogueEditor: React.FC<DialogueEditorProps> = ({ dialogue, onChan
                     <div className="font-medium text-sm">{page.id}</div>
                     <div className="text-xs text-gray-500">Speaker: {page.speaker}</div>
                     <div className="text-xs text-gray-600 truncate">
-                      {Array.isArray(page.lines) 
-                        ? (typeof page.lines[0] === 'string' ? page.lines[0] : page.lines[0]?.text || 'Expression') 
-                        : (typeof page.lines === 'string' ? page.lines : page.lines?.text || 'Expression')}
+                      {page.lines.length > 0 
+                        ? (typeof page.lines[0] === 'string' 
+                            ? page.lines[0] 
+                            : (page.lines[0] as { text?: string }).text || 'Expression'
+                          )
+                        : 'No lines'}
                     </div>
                   </div>
                   <button
@@ -306,7 +309,7 @@ export const DialogueEditor: React.FC<DialogueEditorProps> = ({ dialogue, onChan
       </div>
     </div>
   );
-};
+}
 
 interface PageEditorProps {
   page: DialoguePage;
@@ -314,7 +317,7 @@ interface PageEditorProps {
   onChange: (page: DialoguePage) => void;
 }
 
-const PageEditor: React.FC<PageEditorProps> = ({ page, speakers, onChange }) => {
+function PageEditor({ page, speakers, onChange }: PageEditorProps) {
   const updatePage = (field: keyof DialoguePage, value: any) => {
     onChange({ ...page, [field]: value });
   };
@@ -411,4 +414,4 @@ const PageEditor: React.FC<PageEditorProps> = ({ page, speakers, onChange }) => 
       </div>
     </div>
   );
-};
+}

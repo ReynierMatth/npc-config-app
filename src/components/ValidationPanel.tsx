@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import type { NPCConfiguration, DialogueConfiguration } from '../types/npc';
 import { validateNPCConfiguration, validateDialogueConfiguration, getValidationSummary } from '../utils/validation';
@@ -9,14 +8,15 @@ interface ValidationPanelProps {
   dialogueConfig: DialogueConfiguration | null;
 }
 
-export const ValidationPanel: React.FC<ValidationPanelProps> = ({ npcConfig, dialogueConfig }) => {
+export function ValidationPanel({ npcConfig, dialogueConfig }: ValidationPanelProps) {
   const npcErrors = validateNPCConfiguration(npcConfig);
   const dialogueErrors = dialogueConfig ? validateDialogueConfiguration(dialogueConfig) : [];
   
   const allErrors = [...npcErrors, ...dialogueErrors];
   const summary = getValidationSummary(allErrors);
 
-  const ErrorItem: React.FC<{ error: ValidationError }> = ({ error }) => (
+  function ErrorItem({ error }: { error: ValidationError }) {
+    return (
     <div className={`flex items-start space-x-2 p-2 rounded ${
       error.severity === 'error' ? 'bg-red-50 text-red-800' : 'bg-yellow-50 text-yellow-800'
     }`}>
@@ -30,7 +30,8 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({ npcConfig, dia
         <p className="text-xs">{error.message}</p>
       </div>
     </div>
-  );
+    );
+  }
 
   if (allErrors.length === 0) {
     return (
@@ -123,4 +124,4 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({ npcConfig, dia
       </div>
     </div>
   );
-};
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings, MessageSquare, Sword, Users, Code, FileText, Upload } from 'lucide-react';
 import type { NPCConfiguration, DialogueConfiguration } from './types/npc';
 import { NPCBasicSettings } from './components/NPCBasicSettings';
@@ -26,8 +26,7 @@ function App() {
 
   const [dialogueConfig, setDialogueConfig] = useState<DialogueConfiguration | null>(null);
 
-  // Handle dialogue creation when interaction type changes to dialogue
-  React.useEffect(() => {
+  useEffect(() => {
     if (npcConfig.interaction.type === 'dialogue' && !dialogueConfig) {
       const newDialogue: DialogueConfiguration = {
         speakers: {
@@ -49,7 +48,7 @@ function App() {
       };
       setDialogueConfig(newDialogue);
     }
-  }, [npcConfig.interaction.type, dialogueConfig]);
+  }, [npcConfig.interaction.type]);
 
   const tabs = [
     { id: 'basic', name: 'Basic Settings', icon: Settings },

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { NPCConfiguration, NPCInteraction } from '../types/npc';
 
 interface NPCInteractionEditorProps {
@@ -6,7 +5,7 @@ interface NPCInteractionEditorProps {
   onChange: (config: NPCConfiguration) => void;
 }
 
-export const NPCInteractionEditor: React.FC<NPCInteractionEditorProps> = ({ config, onChange }) => {
+export function NPCInteractionEditor({ config, onChange }: NPCInteractionEditorProps) {
   const handleInteractionChange = (interaction: NPCInteraction) => {
     onChange({ ...config, interaction });
   };
@@ -112,4 +111,4 @@ export const NPCInteractionEditor: React.FC<NPCInteractionEditorProps> = ({ conf
       )}
     </div>
   );
-};
+}

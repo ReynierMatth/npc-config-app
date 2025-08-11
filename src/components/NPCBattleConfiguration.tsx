@@ -1,4 +1,3 @@
-import React from 'react';
 import type { NPCConfiguration } from '../types/npc';
 
 interface NPCBattleConfigurationProps {
@@ -6,7 +5,7 @@ interface NPCBattleConfigurationProps {
   onChange: (config: NPCConfiguration) => void;
 }
 
-export const NPCBattleConfiguration: React.FC<NPCBattleConfigurationProps> = ({ config, onChange }) => {
+export function NPCBattleConfiguration({ config, onChange }: NPCBattleConfigurationProps) {
   const handleChange = (field: keyof NPCConfiguration, value: any) => {
     onChange({ ...config, [field]: value });
   };
@@ -126,4 +125,4 @@ export const NPCBattleConfiguration: React.FC<NPCBattleConfigurationProps> = ({ 
       </div>
     </div>
   );
-};
+}

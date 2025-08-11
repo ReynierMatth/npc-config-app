@@ -1,4 +1,3 @@
-import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { NPCConfiguration, MoLangConfigVariable } from '../types/npc';
 
@@ -7,7 +6,7 @@ interface ConfigVariablesEditorProps {
   onChange: (config: NPCConfiguration) => void;
 }
 
-export const ConfigVariablesEditor: React.FC<ConfigVariablesEditorProps> = ({ config, onChange }) => {
+export function ConfigVariablesEditor({ config, onChange }: ConfigVariablesEditorProps) {
   const addVariable = () => {
     const newVariable: MoLangConfigVariable = {
       variableName: '',
@@ -166,4 +165,4 @@ export const ConfigVariablesEditor: React.FC<ConfigVariablesEditorProps> = ({ co
       )}
     </div>
   );
-};
+}

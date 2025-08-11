@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Upload, Download, FileText, AlertTriangle } from 'lucide-react';
 import type { NPCConfiguration, DialogueConfiguration } from '../types/npc';
 
@@ -9,16 +9,16 @@ interface ImportExportProps {
   onDialogueConfigLoad: (config: DialogueConfiguration) => void;
 }
 
-export const ImportExport: React.FC<ImportExportProps> = ({
+export function ImportExport({
   npcConfig,
   dialogueConfig,
   onNPCConfigLoad,
   onDialogueConfigLoad
-}) => {
+}: ImportExportProps) {
   const npcFileInputRef = useRef<HTMLInputElement>(null);
   const dialogueFileInputRef = useRef<HTMLInputElement>(null);
-  const [importError, setImportError] = React.useState<string | null>(null);
-  const [importSuccess, setImportSuccess] = React.useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
 
   const handleFileRead = (
     file: File,
@@ -313,4 +313,4 @@ export const ImportExport: React.FC<ImportExportProps> = ({
       </div>
     </div>
   );
-};
+}

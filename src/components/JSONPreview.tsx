@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { Download, Copy, Check } from 'lucide-react';
 import type { NPCConfiguration, DialogueConfiguration } from '../types/npc';
 import { ValidationPanel } from './ValidationPanel';
@@ -8,9 +8,9 @@ interface JSONPreviewProps {
   dialogueConfig: DialogueConfiguration | null;
 }
 
-export const JSONPreview: React.FC<JSONPreviewProps> = ({ npcConfig, dialogueConfig }) => {
-  const [copiedNPC, setCopiedNPC] = React.useState(false);
-  const [copiedDialogue, setCopiedDialogue] = React.useState(false);
+export function JSONPreview({ npcConfig, dialogueConfig }: JSONPreviewProps) {
+  const [copiedNPC, setCopiedNPC] = useState(false);
+  const [copiedDialogue, setCopiedDialogue] = useState(false);
 
   const cleanNPCConfig = (config: NPCConfiguration) => {
     const cleaned = { ...config };
@@ -189,4 +189,4 @@ export const JSONPreview: React.FC<JSONPreviewProps> = ({ npcConfig, dialogueCon
       </div>
     </div>
   );
-};
+}

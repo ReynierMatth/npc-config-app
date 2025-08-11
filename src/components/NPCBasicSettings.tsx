@@ -1,4 +1,3 @@
-import React from 'react';
 import type { NPCConfiguration, NPCHitboxValue } from '../types/npc';
 
 interface NPCBasicSettingsProps {
@@ -6,7 +5,7 @@ interface NPCBasicSettingsProps {
   onChange: (config: NPCConfiguration) => void;
 }
 
-export const NPCBasicSettings: React.FC<NPCBasicSettingsProps> = ({ config, onChange }) => {
+export function NPCBasicSettings({ config, onChange }: NPCBasicSettingsProps) {
   const handleChange = (field: keyof NPCConfiguration, value: any) => {
     onChange({ ...config, [field]: value });
   };
@@ -196,4 +195,4 @@ export const NPCBasicSettings: React.FC<NPCBasicSettingsProps> = ({ config, onCh
       </div>
     </div>
   );
-};
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { NPCConfiguration, NPCPartyProvider, SimplePartyProvider, PoolPartyProvider, PoolEntry } from '../types/npc';
 
@@ -7,7 +7,7 @@ interface NPCPartyBuilderProps {
   onChange: (config: NPCConfiguration) => void;
 }
 
-export const NPCPartyBuilder: React.FC<NPCPartyBuilderProps> = ({ config, onChange }) => {
+export function NPCPartyBuilder({ config, onChange }: NPCPartyBuilderProps) {
   const [partyType, setPartyType] = useState<'simple' | 'pool' | 'script'>(config.party?.type || 'simple');
 
   const handlePartyChange = (party: NPCPartyProvider) => {
@@ -323,4 +323,4 @@ export const NPCPartyBuilder: React.FC<NPCPartyBuilderProps> = ({ config, onChan
       {partyType === 'script' && renderScriptParty()}
     </div>
   );
-};
+}
