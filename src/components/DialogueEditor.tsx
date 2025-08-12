@@ -1,6 +1,23 @@
 import { useState } from 'react';
-import { Plus, Trash2, MessageCircle } from 'lucide-react';
+import { Plus, Trash2, MessageCircle, ChevronDown } from 'lucide-react';
 import type { DialogueConfiguration, DialoguePage, DialogueSpeaker } from '../types/npc';
+
+// Common MoLang actions for dialogue
+const COMMON_ACTIONS = {
+  'Close Dialogue': 'q.dialogue.close();',
+  'Open Shop': 'q.dialogue.open_shop();',
+  'Start Battle': 'q.dialogue.start_battle();',
+  'Give Item': 'q.give_item(\'minecraft:emerald\', 1);',
+  'Take Item': 'q.take_item(\'minecraft:emerald\', 1);',
+  'Heal Party': 'q.heal_party();',
+  'Set Flag': 'q.set_flag(\'flag_name\', true);',
+  'Check Flag': 'q.has_flag(\'flag_name\');',
+  'Play Sound': 'q.play_sound(\'sound_name\');',
+  'Add Money': 'q.add_money(100);',
+  'Remove Money': 'q.remove_money(100);',
+  'Teleport Player': 'q.teleport_player(0, 64, 0);',
+  'Custom Script': ''
+};
 
 interface DialogueEditorProps {
   dialogue: DialogueConfiguration | null;
@@ -318,8 +335,38 @@ interface PageEditorProps {
 }
 
 function PageEditor({ page, speakers, onChange }: PageEditorProps) {
+  const [showActionDropdown, setShowActionDropdown] = useState(false);
+  const [customAction, setCustomAction] = useState('');
+
   const updatePage = (field: keyof DialoguePage, value: any) => {
     onChange({ ...page, [field]: value });
+  };
+
+  const selectAction = (action: string) => {
+    if (action === '') {
+      // Custom action selected
+      setCustomAction(typeof page.input === 'string' ? page.input : '');
+    } else {
+      updatePage('input', action);
+      setCustomAction('');
+    }
+    setShowActionDropdown(false);
+  };
+
+  const handleCustomActionChange = (value: string) => {
+    setCustomAction(value);
+    updatePage('input', value);
+  };
+
+  const getCurrentActionLabel = () => {
+    const currentInput = typeof page.input === 'string' ? page.input : JSON.stringify(page.input);
+    const foundAction = Object.entries(COMMON_ACTIONS).find(([, molang]) => molang === currentInput);
+    return foundAction ? foundAction[0] : 'Custom Action';
+  };
+
+  const isCustomAction = () => {
+    const currentInput = typeof page.input === 'string' ? page.input : JSON.stringify(page.input);
+    return !Object.values(COMMON_ACTIONS).includes(currentInput);
   };
 
   const updateLine = (index: number, value: string) => {
@@ -401,15 +448,52 @@ function PageEditor({ page, speakers, onChange }: PageEditorProps) {
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Input/Action</label>
-        <textarea
-          value={typeof page.input === 'string' ? page.input : JSON.stringify(page.input, null, 2)}
-          onChange={(e) => updatePage('input', e.target.value)}
-          rows={3}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-mono"
-          placeholder="q.dialogue.close(); or JSON for options"
-        />
+        <div className="mt-1 space-y-2">
+          {/* Action Selector */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowActionDropdown(!showActionDropdown)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-left hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <span className="text-sm">{getCurrentActionLabel()}</span>
+              <ChevronDown className="h-4 w-4 text-gray-400" />
+            </button>
+            
+            {showActionDropdown && (
+              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
+                <div className="py-1 max-h-64 overflow-y-auto">
+                  {Object.entries(COMMON_ACTIONS).map(([label, molang]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => selectAction(molang)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 focus:bg-gray-100"
+                    >
+                      <div className="font-medium">{label}</div>
+                      {molang && (
+                        <div className="text-xs text-gray-500 font-mono truncate">{molang}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Custom Action Input */}
+          {(isCustomAction() || getCurrentActionLabel() === 'Custom Script') && (
+            <textarea
+              value={isCustomAction() ? (typeof page.input === 'string' ? page.input : JSON.stringify(page.input, null, 2)) : customAction}
+              onChange={(e) => isCustomAction() ? updatePage('input', e.target.value) : handleCustomActionChange(e.target.value)}
+              rows={3}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-mono"
+              placeholder="Enter custom MoLang script or JSON for options"
+            />
+          )}
+        </div>
         <p className="text-xs text-gray-500 mt-1">
-          MoLang script or JSON for dialogue options
+          Select a common action or create a custom MoLang script
         </p>
       </div>
     </div>
