@@ -1,172 +1,202 @@
-import { useRef, useState } from 'react';
-import { Upload, Download, FileText, AlertTriangle } from 'lucide-react';
-import type { NPCConfiguration, DialogueConfiguration } from '../types/npc';
+import React, { useRef, useState } from 'react';
+import { Download, FileText, Package } from 'lucide-react';
+import JSZip from 'jszip';
+import type {DialogueConfiguration, NPCConfig} from '../types/npc';
 
 interface ImportExportProps {
-  npcConfig: NPCConfiguration;
-  dialogueConfig: DialogueConfiguration | null;
-  onNPCConfigLoad: (config: NPCConfiguration) => void;
-  onDialogueConfigLoad: (config: DialogueConfiguration) => void;
+  npcConfigs: NPCConfig[];
+  dialogueConfiguration: DialogueConfiguration | null;
+  onImport: (configs: NPCConfig[]) => void;
 }
 
-export function ImportExport({
-  npcConfig,
-  dialogueConfig,
-  onNPCConfigLoad,
-  onDialogueConfigLoad
-}: ImportExportProps) {
+const MINECRAFT_VERSIONS = [
+  { value: '1.20.1', label: 'Minecraft 1.20.1' },
+  { value: '1.20.2', label: 'Minecraft 1.20.2' },
+  { value: '1.20.3', label: 'Minecraft 1.20.3' },
+  { value: '1.20.4', label: 'Minecraft 1.20.4' },
+  { value: '1.20.5', label: 'Minecraft 1.20.5' },
+  { value: '1.20.6', label: 'Minecraft 1.20.6' },
+  { value: '1.21', label: 'Minecraft 1.21' },
+  { value: '1.21.1', label: 'Minecraft 1.21.1' },
+];
+
+const PACK_FORMAT: { [key: string]: number } = {
+  '1.20.1': 15,
+  '1.20.2': 18,
+  '1.20.3': 26,
+  '1.20.4': 26,
+  '1.20.5': 41,
+  '1.20.6': 48,
+  '1.21': 48,
+  '1.21.1': 48,
+};
+
+export function ImportExport({ npcConfigs, dialogueConfiguration, onImport }: ImportExportProps) {
   const npcFileInputRef = useRef<HTMLInputElement>(null);
-  const dialogueFileInputRef = useRef<HTMLInputElement>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [minecraftVersion, setMinecraftVersion] = useState('1.20.1');
+  const [datapackName, setDatapackName] = useState('cobblemon_npcs');
 
-  const handleFileRead = (
-    file: File,
-    onLoad: (config: any) => void,
-    configType: string
-  ) => {
+  const handleImportNPCs = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImportError(null);
+    setImportSuccess(null);
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        const config = JSON.parse(content);
-        
-        // Basic validation
-        if (configType === 'npc') {
-          if (!config.resourceIdentifier || !config.names) {
-            throw new Error('Invalid NPC configuration: missing required fields');
-          }
-        } else if (configType === 'dialogue') {
-          if (!config.pages || !config.speakers) {
-            throw new Error('Invalid dialogue configuration: missing required fields');
+        const configs = JSON.parse(content);
+
+        if (!Array.isArray(configs)) {
+          setImportError('Le fichier doit contenir un tableau de configurations NPC');
+          return;
+        }
+
+        // Validation basique de la structure
+        for (let index = 0; index < configs.length; index++) {
+          const config = configs[index];
+          if (!config.id || !config.name) {
+            setImportError(`Configuration NPC ${index + 1} invalide: id et name sont requis`);
+            return;
           }
         }
-        
-        onLoad(config);
-        setImportSuccess(`${configType} configuration loaded successfully!`);
-        setImportError(null);
-        setTimeout(() => setImportSuccess(null), 3000);
+
+        onImport(configs);
+        setImportSuccess(`${configs.length} configuration(s) NPC importée(s) avec succès`);
+
+        // Reset input
+        if (npcFileInputRef.current) {
+          npcFileInputRef.current.value = '';
+        }
       } catch (error) {
-        setImportError(`Error loading ${configType}: ${error instanceof Error ? error.message : 'Invalid JSON'}`);
-        setImportSuccess(null);
+        setImportError(error instanceof Error ? error.message : 'Erreur lors de l\'importation');
       }
     };
     reader.readAsText(file);
   };
 
-  const handleNPCFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileRead(file, onNPCConfigLoad, 'npc');
-    }
-  };
+  const generatePackMcmeta = (version: string, packName: string) => {
+    const packFormat = PACK_FORMAT[version] || 15;
 
-  const handleDialogueFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileRead(file, onDialogueConfigLoad, 'dialogue');
-    }
-  };
-
-  const exportExample = () => {
-    const exampleNPC: NPCConfiguration = {
-      hitbox: "player",
-      presets: [],
-      resourceIdentifier: "mymod:example_npc",
-      config: [
-        {
-          variableName: "greeting_message",
-          displayName: "Greeting Message",
-          description: "The message displayed when first talking to the NPC",
-          type: "TEXT",
-          defaultValue: "Hello, trainer!"
-        }
-      ],
-      isInvulnerable: true,
-      canDespawn: false,
-      names: ["Example NPC"],
-      interaction: {
-        type: "dialogue",
-        dialogue: "mymod:example_dialogue"
-      },
-      battleConfiguration: {
-        canChallenge: true
-      },
-      skill: 3,
-      party: {
-        type: "simple",
-        pokemon: [
-          "pikachu level=25 moves=thunderbolt,quick-attack",
-          "charmander level=24 moves=ember,scratch"
-        ]
+    return {
+      pack: {
+        pack_format: packFormat,
+        description: `${packName} - Datapack pour Cobblemon avec NPCs personnalisés`
       }
     };
+  };
 
-    const exampleDialogue: DialogueConfiguration = {
-      speakers: {
-        npc: {
-          name: { type: "expression", expression: "q.npc.name" },
-          face: "q.npc.face(false);"
-        },
-        player: {
-          name: { type: "expression", expression: "q.player.username" },
-          face: "q.player.face();"
-        }
-      },
-      pages: [
-        {
-          id: "greeting",
-          speaker: "npc",
-          lines: ["Hello there, trainer! Would you like to battle?"],
-          input: {
-            type: "option",
-            vertical: true,
-            options: [
-              {
-                text: "Yes, let's battle!",
-                value: "accept",
-                action: ["q.npc.start_battle(q.player, 'single');"]
-              },
-              {
-                text: "Maybe later.",
-                value: "decline",
-                action: ["q.dialogue.close();"]
-              }
-            ]
-          }
-        }
-      ]
+  const generateNPCFile = (npc: NPCConfig) => {
+    return {
+      aspects: npc.aspects || [],
+      model: npc.model || "cobblemon:generic_npc",
+      dialogue: npc.dialogue ? [`${npc.id}_dialogue`] : [],
+      party: npc.party || [],
+      battleTheme: npc.battleConfiguration?.battleTheme || "",
+      victoryTheme: npc.battleConfiguration?.victoryTheme || "",
+      defeatTheme: npc.battleConfiguration?.defeatTheme || "",
+      canBattle: npc.battleConfiguration?.canBattle || false,
+      ...npc.configVariables
     };
+  };
 
-    // Download both files
-    const downloadFile = (content: string, filename: string) => {
-      const blob = new Blob([content], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
+  const exportAsDatapack = async () => {
+    try {
+      setExportError(null);
+
+      if (npcConfigs.length === 0) {
+        setExportError('Aucune configuration NPC à exporter');
+        return;
+      }
+
+      if (!datapackName.trim()) {
+        setExportError('Le nom du datapack est requis');
+        return;
+      }
+
+      const zip = new JSZip();
+
+      // Générer pack.mcmeta
+      const packMcmeta = generatePackMcmeta(minecraftVersion, datapackName);
+      zip.file('pack.mcmeta', JSON.stringify(packMcmeta, null, 2));
+
+      // Créer les dossiers de structure
+      const dataFolder = zip.folder('data');
+      const cobblemonFolder = dataFolder!.folder('cobblemon');
+      const npcsFolder = cobblemonFolder!.folder('npc');
+      const dialogueFolder = cobblemonFolder!.folder('dialogue');
+
+      // Générer les fichiers pour chaque NPC
+      for (const npc of npcConfigs) {
+        // Fichier NPC
+        const npcFile = generateNPCFile(npc);
+        npcsFolder!.file(`${npc.id}.json`, JSON.stringify(npcFile, null, 2));
+
+        console.log(dialogueConfiguration)
+        if (dialogueConfiguration) {
+          console.log(dialogueConfiguration)
+          // Utiliser la même approche que JSONPreview.tsx - sérialisation directe
+          const dialogueJson = JSON.stringify(dialogueConfiguration, null, 2);
+          dialogueFolder!.file(`${npc.id}_dialogue.json`, dialogueJson);
+        }
+      }
+
+      // Générer le ZIP et déclencher le téléchargement
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
+      a.download = `${datapackName}.zip`;
       a.click();
-      document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    };
 
-    downloadFile(JSON.stringify(exampleNPC, null, 2), 'example_npc.json');
-    downloadFile(JSON.stringify(exampleDialogue, null, 2), 'example_dialogue.json');
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'Erreur lors de l\'exportation');
+    }
+  };
+
+  const exportAsJSON = () => {
+    try {
+      setExportError(null);
+      const dataStr = JSON.stringify(npcConfigs, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'npc_configurations.json';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'Erreur lors de l\'exportation');
+    }
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">Import & Export</h2>
+      <h2 className="text-xl font-semibold text-gray-900">Import / Export</h2>
 
-      {/* Status Messages */}
+      {exportError && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <FileText className="h-5 w-5 text-red-400" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-red-800">{exportError}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {importError && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
-            <AlertTriangle className="h-5 w-5 text-red-400" />
+            <FileText className="h-5 w-5 text-red-400" />
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Import Error</h3>
-              <p className="text-sm text-red-700">{importError}</p>
+              <p className="text-sm font-medium text-red-800">{importError}</p>
             </div>
           </div>
         </div>
@@ -197,118 +227,81 @@ export function ImportExport({
                 ref={npcFileInputRef}
                 type="file"
                 accept=".json"
-                onChange={handleNPCFileSelect}
-                className="hidden"
+                onChange={handleImportNPCs}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
-              <button
-                type="button"
-                onClick={() => npcFileInputRef.current?.click()}
-                className="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm bg-white text-sm font-medium text-gray-700 rounded-md hover:bg-gray-50"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Choose NPC JSON File
-              </button>
+              <p className="text-xs text-gray-500 mt-1">
+                Fichier JSON contenant un tableau de configurations NPC
+              </p>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Import Dialogue Configuration
-              </label>
-              <input
-                ref={dialogueFileInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleDialogueFileSelect}
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => dialogueFileInputRef.current?.click()}
-                className="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm bg-white text-sm font-medium text-gray-700 rounded-md hover:bg-gray-50"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Choose Dialogue JSON File
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 text-sm">Import Tips</h4>
-            <ul className="mt-2 text-xs text-blue-800 space-y-1">
-              <li>• Files must be valid JSON format</li>
-              <li>• NPC configs require resourceIdentifier and names</li>
-              <li>• Dialogue configs require pages and speakers</li>
-              <li>• Import will override current configuration</li>
-            </ul>
           </div>
         </div>
 
-        {/* Export/Examples Section */}
+        {/* Export Section */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Examples & Templates</h3>
-          
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={exportExample}
-              className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Example Files
-            </button>
-            
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 text-sm mb-2">Example Includes:</h4>
-              <ul className="text-xs text-gray-700 space-y-1">
-                <li>• Complete NPC with battle configuration</li>
-                <li>• Simple dialogue with options</li>
-                <li>• Configuration variables example</li>
-                <li>• Battle party setup</li>
-                <li>• MoLang expressions</li>
-              </ul>
+          <h3 className="text-lg font-medium text-gray-900">Export Configurations</h3>
+
+          <div className="space-y-4">
+            {/* Configuration du Datapack */}
+            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+              <h4 className="text-sm font-medium text-gray-900">Configuration du Datapack</h4>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Version Minecraft
+                </label>
+                <select
+                  value={minecraftVersion}
+                  onChange={(e) => setMinecraftVersion(e.target.value)}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                >
+                  {MINECRAFT_VERSIONS.map(version => (
+                    <option key={version.value} value={version.value}>
+                      {version.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nom du Datapack
+                </label>
+                <input
+                  type="text"
+                  value={datapackName}
+                  onChange={(e) => setDatapackName(e.target.value)}
+                  placeholder="nom_du_datapack"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Boutons d'export */}
+            <div className="space-y-3">
+              <button
+                onClick={exportAsDatapack}
+                disabled={npcConfigs.length === 0}
+                className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                <Package className="h-4 w-4 mr-2" />
+                Export Cobblemon Datapack (.zip)
+              </button>
+
+              <button
+                onClick={exportAsJSON}
+                disabled={npcConfigs.length === 0}
+                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export JSON Configuration
+              </button>
+
+              <p className="text-xs text-gray-500">
+                {npcConfigs.length} configuration(s) prête(s) à l'export
+              </p>
             </div>
           </div>
-
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h4 className="font-medium text-yellow-800 text-sm">Quick Start</h4>
-            <p className="mt-1 text-xs text-yellow-700">
-              Download the example files to see a complete working NPC configuration. 
-              You can then import and modify them to create your own NPCs.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Current Configuration Summary */}
-      <div className="border-t pt-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-3">Current Configuration Summary</h3>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <dl className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <dt className="font-medium text-gray-900">NPC Name</dt>
-              <dd className="text-gray-700">{npcConfig.names[0] || 'Unnamed NPC'}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-gray-900">Resource ID</dt>
-              <dd className="text-gray-700 font-mono text-xs">{npcConfig.resourceIdentifier || 'Not set'}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-gray-900">Interaction</dt>
-              <dd className="text-gray-700 capitalize">{npcConfig.interaction.type}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-gray-900">Can Battle</dt>
-              <dd className="text-gray-700">{npcConfig.battleConfiguration?.canChallenge ? 'Yes' : 'No'}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-gray-900">Config Variables</dt>
-              <dd className="text-gray-700">{npcConfig.config.length}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-gray-900">Has Dialogue</dt>
-              <dd className="text-gray-700">{dialogueConfig ? 'Yes' : 'No'}</dd>
-            </div>
-          </dl>
         </div>
       </div>
     </div>

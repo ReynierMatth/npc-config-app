@@ -6,6 +6,8 @@ interface NPCInteractionEditorProps {
 }
 
 export function NPCInteractionEditor({ config, onChange }: NPCInteractionEditorProps) {
+  const currentInteraction = config.interaction || { type: 'none' };
+
   const handleInteractionChange = (interaction: NPCInteraction) => {
     onChange({ ...config, interaction });
   };
@@ -39,7 +41,7 @@ export function NPCInteractionEditor({ config, onChange }: NPCInteractionEditorP
               <input
                 type="radio"
                 value={type}
-                checked={config.interaction.type === type}
+                checked={currentInteraction.type === type}
                 onChange={(e) => handleTypeChange(e.target.value as NPCInteraction['type'])}
                 className="form-radio"
               />
@@ -54,59 +56,48 @@ export function NPCInteractionEditor({ config, onChange }: NPCInteractionEditorP
         </div>
       </div>
 
-      {config.interaction.type === 'dialogue' && (
+      {currentInteraction.type === 'dialogue' && (
         <div>
-          <label className="block text-sm font-medium text-gray-700">Dialogue Resource Location</label>
+          <label className="block text-sm font-medium text-gray-700">Dialogue Reference</label>
           <input
             type="text"
-            value={config.interaction.dialogue}
+            value={currentInteraction.dialogue || ''}
             onChange={(e) => handleInteractionChange({ type: 'dialogue', dialogue: e.target.value })}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            placeholder="cobblemon:my_dialogue"
+            placeholder="dialogue_id"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Reference to a dialogue file (e.g., "cobblemon:my_dialogue" refers to data/cobblemon/dialogues/my_dialogue.json)
-          </p>
         </div>
       )}
 
-      {config.interaction.type === 'script' && (
+      {currentInteraction.type === 'script' && (
         <div>
-          <label className="block text-sm font-medium text-gray-700">Script Resource Location</label>
+          <label className="block text-sm font-medium text-gray-700">Script Path</label>
           <input
             type="text"
-            value={config.interaction.script}
+            value={currentInteraction.script || ''}
             onChange={(e) => handleInteractionChange({ type: 'script', script: e.target.value })}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            placeholder="cobblemon:my_script"
+            placeholder="path/to/script.js"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Reference to a MoLang script file (e.g., "cobblemon:my_script" refers to data/cobblemon/molang/my_script.molang)
-          </p>
         </div>
       )}
 
-      {config.interaction.type === 'custom_script' && (
+      {currentInteraction.type === 'custom_script' && (
         <div>
-          <label className="block text-sm font-medium text-gray-700">Custom MoLang Script</label>
+          <label className="block text-sm font-medium text-gray-700">Custom Script</label>
           <textarea
-            value={config.interaction.script}
+            value={currentInteraction.script || ''}
             onChange={(e) => handleInteractionChange({ type: 'custom_script', script: e.target.value })}
-            rows={4}
+            rows={6}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            placeholder="q.player.send_message('Hello from custom script!');"
+            placeholder="// Your custom script here..."
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Direct MoLang script code to execute when player interacts with NPC
-          </p>
         </div>
       )}
 
-      {config.interaction.type === 'none' && (
-        <div className="bg-gray-50 p-4 rounded-md">
-          <p className="text-sm text-gray-600">
-            This NPC will not respond to player interactions. Useful for decorative NPCs.
-          </p>
+      {currentInteraction.type === 'none' && (
+        <div className="text-gray-500 italic">
+          This NPC will not have any special interaction behavior.
         </div>
       )}
     </div>

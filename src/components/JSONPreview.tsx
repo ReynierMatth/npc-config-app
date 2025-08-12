@@ -69,7 +69,7 @@ export function JSONPreview({ npcConfig, dialogueConfig }: JSONPreviewProps) {
   };
 
   const generateFilenames = () => {
-    const baseName = npcConfig.resourceIdentifier
+    const baseName = (npcConfig.resourceIdentifier || 'cobblemon:npc')
       .split(':')[1] || 'npc';
     
     return {

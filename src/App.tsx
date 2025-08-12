@@ -16,18 +16,20 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('basic');
   
   const [npcConfig, setNpcConfig] = useState<NPCConfiguration>({
+    id: 'my_npc',
+    name: 'My NPC',
     hitbox: "player",
-    presets: [],
-    resourceIdentifier: "cobblemon:my_npc",
     config: [],
     names: ["My NPC"],
-    interaction: { type: "none" }
+    interactions: [],
+    interaction: { type: 'none' },
+    resourceIdentifier: 'cobblemon:my_npc'
   });
 
   const [dialogueConfig, setDialogueConfig] = useState<DialogueConfiguration | null>(null);
 
   useEffect(() => {
-    if (npcConfig.interaction.type === 'dialogue' && !dialogueConfig) {
+    if (npcConfig.interactions && npcConfig.interactions.length > 0 && npcConfig.interactions[0].type === 'dialogue' && !dialogueConfig) {
       const newDialogue: DialogueConfiguration = {
         speakers: {
           npc: {
@@ -48,7 +50,7 @@ function App() {
       };
       setDialogueConfig(newDialogue);
     }
-  }, [npcConfig.interaction.type]);
+  }, [npcConfig.interactions, dialogueConfig]);
 
   const tabs = [
     { id: 'basic', name: 'Basic Settings', icon: Settings },
@@ -80,10 +82,13 @@ function App() {
       case 'import':
         return (
           <ImportExport
-            npcConfig={npcConfig}
-            dialogueConfig={dialogueConfig}
-            onNPCConfigLoad={setNpcConfig}
-            onDialogueConfigLoad={setDialogueConfig}
+            npcConfigs={[npcConfig]}
+            dialogueConfiguration={dialogueConfig}
+            onImport={(configs) => {
+              if (configs.length > 0) {
+                setNpcConfig(configs[0]);
+              }
+            }}
           />
         );
       default:
@@ -155,11 +160,15 @@ function App() {
                 </div>
                 <div>
                   <dt className="font-medium text-gray-700">Interaction</dt>
-                  <dd className="text-gray-600 capitalize">{npcConfig.interaction.type}</dd>
+                  <dd className="text-gray-600 capitalize">
+                    {npcConfig.interactions && npcConfig.interactions.length > 0
+                      ? npcConfig.interactions[0].type
+                      : 'none'}
+                  </dd>
                 </div>
                 <div>
                   <dt className="font-medium text-gray-700">Variables</dt>
-                  <dd className="text-gray-600">{npcConfig.config.length}</dd>
+                  <dd className="text-gray-600">{npcConfig.config?.length || 0}</dd>
                 </div>
               </dl>
             </div>

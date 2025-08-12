@@ -18,19 +18,19 @@ export function ConfigVariablesEditor({ config, onChange }: ConfigVariablesEdito
 
     onChange({
       ...config,
-      config: [...config.config, newVariable]
+      config: [...(config.config || []), newVariable]
     });
   };
 
   const removeVariable = (index: number) => {
     onChange({
       ...config,
-      config: config.config.filter((_, i) => i !== index)
+      config: (config.config || []).filter((_, i) => i !== index)
     });
   };
 
   const updateVariable = (index: number, field: keyof MoLangConfigVariable, value: any) => {
-    const newConfig = [...config.config];
+    const newConfig = [...(config.config || [])];
     newConfig[index] = { ...newConfig[index], [field]: value };
     onChange({
       ...config,
@@ -57,13 +57,13 @@ export function ConfigVariablesEditor({ config, onChange }: ConfigVariablesEdito
         These variables can be referenced in dialogues, scripts, and other configurations.
       </p>
 
-      {config.config.length === 0 ? (
+      {(config.config || []).length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           No configuration variables defined. Click "Add Variable" to create one.
         </div>
       ) : (
         <div className="space-y-4">
-          {config.config.map((variable, index) => (
+          {(config.config || []).map((variable, index) => (
             <div key={index} className="border rounded-lg p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <h3 className="font-medium text-lg">Variable {index + 1}</h3>

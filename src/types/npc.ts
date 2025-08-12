@@ -14,7 +14,11 @@ export interface MoLangConfigVariable {
 }
 
 export interface NPCBattleConfiguration {
-  canChallenge: boolean;
+  canBattle?: boolean;
+  canChallenge?: boolean;
+  battleTheme?: string;
+  victoryTheme?: string;
+  defeatTheme?: string;
   simultaneousBattles?: boolean;
   healAfterwards?: boolean;
 }
@@ -49,51 +53,10 @@ export interface ScriptPartyProvider {
   isStatic?: boolean;
 }
 
-export type NPCPartyProvider = SimplePartyProvider | PoolPartyProvider | ScriptPartyProvider;
+export type PartyProvider = SimplePartyProvider | PoolPartyProvider | ScriptPartyProvider;
 
-export interface DialogueInteraction {
-  type: "dialogue";
-  dialogue: string;
-}
-
-export interface ScriptInteraction {
-  type: "script";
-  script: string;
-}
-
-export interface CustomScriptInteraction {
-  type: "custom_script";
-  script: string;
-}
-
-export interface NoInteraction {
-  type: "none";
-}
-
-export type NPCInteraction = DialogueInteraction | ScriptInteraction | CustomScriptInteraction | NoInteraction;
-
-export interface NPCConfiguration {
-  hitbox: NPCHitboxValue;
-  presets: string[];
-  resourceIdentifier: string;
-  config: MoLangConfigVariable[];
-  isInvulnerable?: boolean;
-  canDespawn?: boolean;
-  isMovable?: boolean;
-  isLeashable?: boolean;
-  allowProjectileHits?: boolean;
-  hideNameTag?: boolean;
-  names: string[];
-  aspects?: string[];
-  modelScale?: number;
-  interaction: NPCInteraction;
-  battleConfiguration?: NPCBattleConfiguration;
-  autoHealParty?: boolean;
-  randomizePartyOrder?: boolean;
-  skill?: number;
-  battleTheme?: string;
-  party?: NPCPartyProvider;
-}
+// Alias pour compatibilité avec les autres fichiers
+export type NPCPartyProvider = PartyProvider;
 
 // Dialogue System Types
 export interface DialogueText {
@@ -105,8 +68,15 @@ export interface DialogueText {
 export interface DialogueOption {
   text: DialogueText | string;
   value: string;
-  action: string | string[];
+  action?: string | string[];
   isSelectable?: string;
+}
+
+export interface DialogueEntry {
+  id: string;
+  text: DialogueText | string;
+  options?: DialogueOption[];
+  nextDialogue?: string;
 }
 
 export interface DialogueOptionInput {
@@ -129,7 +99,7 @@ export interface DialogueAutoContinueInput {
 }
 
 export interface DialogueNoInput {
-  // No additional properties needed
+  type: "none";
 }
 
 export type DialogueInput = DialogueOptionInput | DialogueTextInput | DialogueAutoContinueInput | DialogueNoInput;
@@ -155,3 +125,45 @@ export interface DialogueConfiguration {
   pages: DialoguePage[];
   background?: string;
 }
+
+export interface NPCInteraction {
+  type: string;
+  data?: any;
+  dialogue?: string;
+  script?: string;
+}
+
+export interface NPCConfiguration {
+  id: string;
+  name: string;
+  names: string[];
+  displayName?: string;
+  resourceIdentifier?: string;
+  model?: string;
+  modelScale?: number;
+  texture?: string;
+  aspects?: string[];
+  hitbox?: NPCHitboxValue;
+  battleConfiguration?: NPCBattleConfiguration;
+  party?: PartyProvider;
+  config?: MoLangConfigVariable[];
+  configVariables?: Record<string, any>;
+  dialogue?: DialogueEntry[];
+  canInteract?: boolean;
+  interactionDistance?: number;
+  interaction?: NPCInteraction;
+  interactions?: NPCInteraction[];
+  skill?: number;
+  battleTheme?: string;
+  autoHealParty?: boolean;
+  randomizePartyOrder?: boolean;
+  isInvulnerable?: boolean;
+  canDespawn?: boolean;
+  isMovable?: boolean;
+  isLeashable?: boolean;
+  allowProjectileHits?: boolean;
+  hideNameTag?: boolean;
+}
+
+// Alias pour l'interface NPCConfig pour la compatibilité avec ImportExport
+export type NPCConfig = NPCConfiguration;

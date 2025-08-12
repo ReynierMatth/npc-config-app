@@ -107,7 +107,8 @@ export const validateNPCConfiguration = (config: NPCConfiguration): ValidationEr
   }
 
   // Interaction validation
-  if (config.interaction.type === 'dialogue' && !config.interaction.dialogue) {
+  const interaction = config.interaction || { type: 'none' };
+  if (interaction.type === 'dialogue' && !interaction.dialogue) {
     errors.push({
       field: 'interaction.dialogue',
       message: 'Dialogue interaction must specify a dialogue resource location',
@@ -115,7 +116,7 @@ export const validateNPCConfiguration = (config: NPCConfiguration): ValidationEr
     });
   }
 
-  if (config.interaction.type === 'script' && !config.interaction.script) {
+  if (interaction.type === 'script' && !interaction.script) {
     errors.push({
       field: 'interaction.script',
       message: 'Script interaction must specify a script resource location',
@@ -123,7 +124,7 @@ export const validateNPCConfiguration = (config: NPCConfiguration): ValidationEr
     });
   }
 
-  if (config.interaction.type === 'custom_script' && !config.interaction.script) {
+  if (interaction.type === 'custom_script' && !interaction.script) {
     errors.push({
       field: 'interaction.script',
       message: 'Custom script interaction must provide script code',
@@ -132,7 +133,7 @@ export const validateNPCConfiguration = (config: NPCConfiguration): ValidationEr
   }
 
   // Configuration variables validation
-  config.config.forEach((variable, index) => {
+  (config.config || []).forEach((variable, index) => {
     if (!variable.variableName) {
       errors.push({
         field: `config.${index}.variableName`,
