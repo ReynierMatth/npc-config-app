@@ -75,7 +75,7 @@ export interface CobblemonPokemon {
 }
 
 class PokemonApiService {
-  private cache = new Map<string, any>();
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
   private readonly CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes
 
   private async fetchWithCache<T>(url: string): Promise<T> {
@@ -83,7 +83,7 @@ class PokemonApiService {
     const cached = this.cache.get(cacheKey);
     
     if (cached && Date.now() - cached.timestamp < this.CACHE_EXPIRY) {
-      return cached.data;
+      return cached.data as T;
     }
 
     try {
@@ -107,11 +107,9 @@ class PokemonApiService {
 
   async searchPokemon(query: string, limit: number = 20): Promise<PokemonListItem[]> {
     const allPokemon = await this.getAllPokemon();
-    const filtered = allPokemon.results
+    return allPokemon.results
       .filter(pokemon => pokemon.name.toLowerCase().includes(query.toLowerCase()))
       .slice(0, limit);
-    
-    return filtered;
   }
 
   async getPokemon(nameOrId: string | number): Promise<Pokemon> {
@@ -169,7 +167,7 @@ class PokemonApiService {
     const stdDev = (max - min) / 6;
     
     // Simple normal distribution approximation
-    let level = Math.round(avg + stdDev * (Math.random() + Math.random() + Math.random() - 1.5));
+    const level = Math.round(avg + stdDev * (Math.random() + Math.random() + Math.random() - 1.5));
     return Math.max(min, Math.min(max, level));
   }
 
@@ -242,6 +240,54 @@ class PokemonApiService {
       console.error(`Failed to generate team for type ${type}:`, error);
       // Fallback to random team
       return this.generateRandomTeam(teamSize);
+    }
+  }
+
+  // Nouvelle fonction pour extraire le nom du Pokémon depuis une chaîne Cobblemon
+  extractPokemonName(cobblemonString: string): string {
+    if (!cobblemonString || cobblemonString.trim() === '') return '';
+
+    // La chaîne est au format: "pikachu level=50 moves=thunderbolt,quick-attack"
+    // On prend le premier mot avant l'espace
+    const parts = cobblemonString.trim().split(/\s+/);
+    return parts[0].toLowerCase();
+  }
+
+  // Nouvelle fonction pour récupérer l'image d'un Pokémon
+  async getPokemonImageUrl(pokemonName: string): Promise<string | null> {
+    if (!pokemonName || pokemonName.trim() === '') return null;
+
+    try {
+      const pokemon = await this.getPokemon(pokemonName.toLowerCase());
+
+      // Priorité aux images officielles, sinon sprite par défaut
+      return pokemon.sprites.other?.['official-artwork']?.front_default ||
+             pokemon.sprites.front_default ||
+             null;
+    } catch (error) {
+      console.warn(`Failed to fetch image for pokemon: ${pokemonName}`, error);
+      return null;
+    }
+  }
+
+  // Fonction pour récupérer les informations basiques d'un Pokémon depuis une chaîne Cobblemon
+  async getPokemonInfo(cobblemonString: string): Promise<{ name: string; imageUrl: string | null; displayName: string } | null> {
+    const pokemonName = this.extractPokemonName(cobblemonString);
+    if (!pokemonName) return null;
+
+    try {
+      const imageUrl = await this.getPokemonImageUrl(pokemonName);
+      return {
+        name: pokemonName,
+        imageUrl,
+        displayName: this.formatPokemonName(pokemonName)
+      };
+    } catch (error) {
+      return {
+        name: pokemonName,
+        imageUrl: null,
+        displayName: this.formatPokemonName(pokemonName)
+      };
     }
   }
 }

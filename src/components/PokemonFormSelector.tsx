@@ -12,9 +12,10 @@ interface PokemonFormSelectorProps {
   onSelect: (pokemonString: string) => void;
   onClose: () => void;
   isOpen: boolean;
+  initialPokemonString?: string; // Nouvelle prop pour le Pokémon à modifier
 }
 
-export function PokemonFormSelector({ onSelect, onClose, isOpen }: PokemonFormSelectorProps) {
+export function PokemonFormSelector({ onSelect, onClose, isOpen, initialPokemonString }: PokemonFormSelectorProps) {
   const [allPokemon, setAllPokemon] = useState<PokemonListItem[]>([]);
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
   const [isLoadingMoves, setIsLoadingMoves] = useState(false);
@@ -80,6 +81,26 @@ export function PokemonFormSelector({ onSelect, onClose, isOpen }: PokemonFormSe
 
     loadPokemonDetails();
   }, [formData.pokemon]);
+
+  // Si une chaîne Pokémon initiale est fournie, la définir dans l'état du formulaire
+  useEffect(() => {
+    if (initialPokemonString && isOpen) {
+      const parsePokemonString = (pokemonString: string) => {
+        const regex = /(\w+)(?:\s+level=(\d+))?(?:\s+moves=([\w,-]+))?/;
+        const match = pokemonString.match(regex);
+
+        if (match) {
+          const pokemon = match[1];
+          const level = match[2] ? parseInt(match[2]) : 50;
+          const moves = match[3] ? match[3].split(',').map(move => move.trim()) : ['', '', '', ''];
+
+          setFormData({ pokemon, level, moves });
+        }
+      };
+
+      parsePokemonString(initialPokemonString);
+    }
+  }, [initialPokemonString, isOpen]);
 
   const handlePokemonChange = (pokemonName: string) => {
     setFormData(prev => ({
